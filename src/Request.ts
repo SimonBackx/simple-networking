@@ -37,7 +37,7 @@ export interface RequestInitializer<T> {
      * Shorthand for 'bag: RequestBag.getOrCreate(self)'
      */
     owner?: any;
-    overrideXMLHttpRequest?: XMLHttpRequest;
+    overrideXMLHttpRequest?: any;
 }
 
 export class Request<T> {
@@ -166,7 +166,7 @@ export class Request<T> {
     private async fetch(data: {
         method: HTTPMethod;
         url: string;
-        body: string | Document | Blob | ArrayBufferView | ArrayBuffer | FormData | URLSearchParams | ReadableStream<Uint8Array> | null | undefined;
+        body: string | Document | Blob | ArrayBufferView | ArrayBuffer | FormData | URLSearchParams | null | undefined;
         headers: any;
         timeout: number;
     }): Promise<XMLHttpRequest> {
