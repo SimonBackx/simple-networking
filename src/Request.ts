@@ -10,9 +10,11 @@ export type HTTPMethod = "GET" | "POST" | "PATCH" | "DELETE" | "PUT";
 
 export class RequestResult<T> {
     data: T;
+    headers: any;
 
-    constructor(data: T) {
+    constructor(data: T, headers = {}) {
         this.data = data;
+        this.headers = headers;
     }
 }
 
@@ -27,6 +29,7 @@ export interface RequestInitializer<T> {
     timeout?: number; // optional (in ms). Defaults to 10 - 15 seconds
     shouldRetry?: boolean;
     allowErrorRetry?: boolean;
+    responseType?: "" | "text" | "arraybuffer" | "blob" | "document" | "json";
 
     /**
      * If you want to associate a request bag to this request (so you can cancel all requests for a given instance easily and fast)
@@ -47,6 +50,7 @@ export class Request<T> {
     method: HTTPMethod;
     version?: number;
     headers: any;
+    responseType: "" | "text" | "arraybuffer" | "blob" | "document" | "json";
 
     /**
      * Set to false to disable middleware retry logic entirely. When canceling a request, this will also
@@ -106,6 +110,7 @@ export class Request<T> {
         this.headers = request.headers ?? {};
         this.version = request.version;
         this.timeout = request.timeout;
+        this.responseType = request.responseType ?? ""
         this.shouldRetry = request.shouldRetry ?? this.shouldRetry
         this.allowErrorRetry = request.allowErrorRetry ?? this.allowErrorRetry
         this.bag = request.bag ?? (request.owner ? RequestBag.getOrCreate(request.owner) : undefined)
@@ -173,6 +178,7 @@ export class Request<T> {
         return new Promise((resolve, reject) => {
             try {
                 const request: XMLHttpRequest = this.overrideXMLHttpRequest ? (new this.overrideXMLHttpRequest()) : new XMLHttpRequest();
+                request.responseType = this.responseType;
                 let finished = false
 
                 request.onreadystatechange = (e: Event) => {
@@ -482,7 +488,9 @@ export class Request<T> {
         }
 
         this.bag?.removeRequest(this)
-        return new RequestResult(await response.response) as any;
+        return new RequestResult(await response.response, {
+            'content-type': response.getResponseHeader('content-type') ?? null
+        }) as any;
     }
 
     private async retryOrThrowServerError(response: XMLHttpRequest, e: Error) {
