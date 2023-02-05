@@ -168,6 +168,10 @@ export class Request<T> {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode("network_error") || e.hasCode("network_timeout") || e.hasCode("network_abort")))
     }
 
+    static isAbortError(e: Error): e is SimpleError | SimpleErrors {
+        return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode("network_abort")))
+    }
+
     private async fetch(data: {
         method: HTTPMethod;
         url: string;
