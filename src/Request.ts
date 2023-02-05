@@ -308,6 +308,11 @@ export class Request<T> {
                         timeout = Math.max(timeout, 60*1000)
                     }
                 } else {
+                    if (!this.headers["Content-Type"] && this.headers["content-type"]) {
+                        this.headers["Content-Type"] = this.headers["content-type"];
+                        delete this.headers["content-type"];
+                    }
+
                     if (this.headers["Content-Type"] && (this.headers["Content-Type"] as string).startsWith("application/x-www-form-urlencoded")) {
                         const typeCopy = encodeObject(this.body, { version: this.version ?? 0 })
                         if (typeCopy === null || typeCopy === undefined) {
