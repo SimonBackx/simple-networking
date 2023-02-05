@@ -476,11 +476,11 @@ export class Request<T> {
                     console.info(decoded);
                 }
                 this.bag?.removeRequest(this)
-                return new RequestResult(decoded);
+                return new RequestResult(decoded, Request.parseHeaders(response.getAllResponseHeaders()));
             }
 
             this.bag?.removeRequest(this)
-            return new RequestResult(json);
+            return new RequestResult(json, Request.parseHeaders(response.getAllResponseHeaders()));
         }
 
         if (this.decoder) {
@@ -492,9 +492,20 @@ export class Request<T> {
         }
 
         this.bag?.removeRequest(this)
-        return new RequestResult(await response.response, {
-            'content-type': response.getResponseHeader('content-type') ?? null
-        }) as any;
+        return new RequestResult(await response.response, Request.parseHeaders(response.getAllResponseHeaders())) as any;
+    }
+
+    static parseHeaders(headers: string) {
+        const result: Record<string, string> = {}
+        for (const line of headers.trim().split(/[\r\n]+/)) {
+            const parts = line.split(": ")
+            const header = parts.shift();
+            if (header) {
+                const value = parts.join(': ');
+                result[header.toLowerCase()] = value;
+            }
+        }
+        return result;
     }
 
     private async retryOrThrowServerError(response: XMLHttpRequest, e: Error) {
