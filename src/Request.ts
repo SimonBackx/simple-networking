@@ -419,7 +419,11 @@ export class Request<T> {
                 let err: SimpleErrors | any;
 
                 try {
-                    const json = JSON.parse(response.response)
+                    let bodyText = await response.response
+                    if (bodyText instanceof Blob) {
+                        bodyText = await response.response.text()
+                    }
+                    const json = JSON.parse(bodyText)
 
                     if (this.errorDecoder) {
                         try {
@@ -469,7 +473,11 @@ export class Request<T> {
         if (response.getResponseHeader("Content-Type") === "application/json") {
             let json: any
             try {
-                 json = JSON.parse(response.response)
+                let bodyText = await response.response
+                if (bodyText instanceof Blob) {
+                    bodyText = await response.response.text()
+                }
+                 json = JSON.parse(bodyText)
             } catch (e) {
                 // A 200 status code with invalid JSON is considered a server error
                 return await this.retryOrThrowServerError(response, e)
