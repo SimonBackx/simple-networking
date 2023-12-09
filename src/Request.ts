@@ -11,10 +11,12 @@ export type HTTPMethod = "GET" | "POST" | "PATCH" | "DELETE" | "PUT";
 export class RequestResult<T> {
     data: T;
     headers: any;
+    responseVersion?: number;
 
-    constructor(data: T, headers = {}) {
+    constructor(data: T, headers = {}, responseVersion?: number) {
         this.data = data;
         this.headers = headers;
+        this.responseVersion = responseVersion;
     }
 }
 
@@ -414,6 +416,23 @@ export class Request<T> {
             }
         }
 
+        // Get the version
+        let responseVersion: number | undefined;
+        for (const header of this.server.versionHeaders) {
+            const value = response.getResponseHeader(header);
+            if (value) {
+                const v = parseInt(value);
+                if (!isNaN(v) && isFinite(v)) {
+                    responseVersion = v;
+                    break;
+                }
+            }
+        }
+        if (!responseVersion) {
+            // Use the request version by default
+            responseVersion = this.version ?? 0;
+        }
+
         if (response.status < 200 || response.status >= 300) {
             if (response.getResponseHeader("Content-Type") === "application/json") {
                 let err: SimpleErrors | any;
@@ -427,7 +446,7 @@ export class Request<T> {
 
                     if (this.errorDecoder) {
                         try {
-                            err = this.errorDecoder.decode(new ObjectData(json, { version: 0 }));
+                            err = this.errorDecoder.decode(new ObjectData(json, { version: responseVersion }));
                             if (this.static.verbose) {
                                 console.error(err);
                             }
@@ -484,16 +503,16 @@ export class Request<T> {
             }
 
             if (this.decoder) {
-                const decoded = this.decoder?.decode(new ObjectData(json, { version: this.version ?? 0 }));
+                const decoded = this.decoder?.decode(new ObjectData(json, { version: responseVersion }));
                 if (this.static.verbose) {
                     console.info(decoded);
                 }
                 this.bag?.removeRequest(this)
-                return new RequestResult(decoded, Request.parseHeaders(response.getAllResponseHeaders()));
+                return new RequestResult(decoded, Request.parseHeaders(response.getAllResponseHeaders()), responseVersion);
             }
 
             this.bag?.removeRequest(this)
-            return new RequestResult(json, Request.parseHeaders(response.getAllResponseHeaders()));
+            return new RequestResult(json, Request.parseHeaders(response.getAllResponseHeaders()), responseVersion);
         }
 
         if (this.decoder) {
@@ -505,7 +524,7 @@ export class Request<T> {
         }
 
         this.bag?.removeRequest(this)
-        return new RequestResult(await response.response, Request.parseHeaders(response.getAllResponseHeaders())) as any;
+        return new RequestResult(await response.response, Request.parseHeaders(response.getAllResponseHeaders()), responseVersion) as any;
     }
 
     static parseHeaders(headers: string) {

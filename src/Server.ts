@@ -8,8 +8,17 @@ export class Server {
     host: string
     middlewares: RequestMiddleware[] = []
 
+    /**
+     * When decoding the version headers of the response will be used if they are present.
+     */
+    versionHeaders: string[] = ['X-Version']
+
     constructor(host: string) {
         this.host = host
+    }
+
+    setVersionHeaders(headers: string[]) {
+        this.versionHeaders = headers
     }
 
     /**
