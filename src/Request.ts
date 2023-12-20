@@ -285,7 +285,7 @@ export class Request<T> {
         }
 
         let response: XMLHttpRequest;
-        let timeout = this.timeout ?? (this.method == "GET" ? 10 * 1000 : 15 * 10000)
+        let timeout = this.timeout ?? (this.method == "GET" ? 20 * 1000 : 30 * 10000)
 
         try {
             let body: any;
