@@ -1,5 +1,5 @@
 // Requests use middleware to extend its behaviour
-import { Decoder, EncodableObject, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
+import { Decoder, EncodableObject, EncodeMedium, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
 import { isSimpleError, isSimpleErrors, SimpleError, SimpleErrors } from '@simonbackx/simple-errors';
 
 import { RequestBag } from './RequestBag';
@@ -320,7 +320,10 @@ export class Request<T> {
                     }
 
                     if (this.headers['Content-Type'] && (this.headers['Content-Type'] as string).startsWith('application/x-www-form-urlencoded')) {
-                        const typeCopy = encodeObject(this.body, { version: this.version ?? 0 });
+                        const typeCopy = encodeObject(this.body, {
+                            version: this.version ?? 0,
+                            medium: EncodeMedium.Network,
+                        });
                         if (typeCopy === null || typeCopy === undefined) {
                             throw new Error('Invalid body, got null/undefined, which is not encodeable to a querystring');
                         }
@@ -331,14 +334,20 @@ export class Request<T> {
                     }
                     else {
                         this.headers['Content-Type'] = 'application/json;charset=utf-8';
-                        body = JSON.stringify(encodeObject(this.body, { version: this.version ?? 0 }));
+                        body = JSON.stringify(encodeObject(this.body, {
+                            version: this.version ?? 0,
+                            medium: EncodeMedium.Network,
+                        }));
                     }
                 }
             }
 
             let queryString = '';
             if (this.query) {
-                const query = encodeObject(this.query, { version: this.version ?? 0 });
+                const query = encodeObject(this.query, {
+                    version: this.version ?? 0,
+                    medium: EncodeMedium.Network,
+                });
 
                 if (query !== undefined && query !== null && Object.keys(query).length > 0) {
                     queryString
@@ -450,7 +459,12 @@ export class Request<T> {
 
                     if (this.errorDecoder) {
                         try {
-                            err = this.errorDecoder.decode(new ObjectData(json, { version: responseVersion }));
+                            err = this.errorDecoder.decode(
+                                new ObjectData(json, {
+                                    version: responseVersion,
+                                    medium: EncodeMedium.Network,
+                                }),
+                            );
                             if (this.static.verbose) {
                                 console.error(err);
                             }
@@ -511,7 +525,10 @@ export class Request<T> {
             }
 
             if (this.decoder) {
-                const decoded = this.decoder?.decode(new ObjectData(json, { version: responseVersion }));
+                const decoded = this.decoder?.decode(new ObjectData(json, {
+                    version: responseVersion,
+                    medium: EncodeMedium.Network,
+                }));
                 if (this.static.verbose) {
                     console.info(decoded);
                 }
