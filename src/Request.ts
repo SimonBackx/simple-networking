@@ -1,12 +1,12 @@
 // Requests use middleware to extend its behaviour
-import { Decoder, EncodableObject, encodeObject, ObjectData } from "@simonbackx/simple-encoding";
-import { isSimpleError, isSimpleErrors, SimpleError, SimpleErrors } from "@simonbackx/simple-errors";
+import { Decoder, EncodableObject, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
+import { isSimpleError, isSimpleErrors, SimpleError, SimpleErrors } from '@simonbackx/simple-errors';
 
-import { RequestBag } from "./RequestBag";
-import { RequestMiddleware } from "./RequestMiddleware";
-import { Server } from "./Server";
+import { RequestBag } from './RequestBag';
+import { RequestMiddleware } from './RequestMiddleware';
+import { Server } from './Server';
 
-export type HTTPMethod = "GET" | "POST" | "PATCH" | "DELETE" | "PUT";
+export type HTTPMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
 
 export class RequestResult<T> {
     data: T;
@@ -31,13 +31,13 @@ export interface RequestInitializer<T> {
     timeout?: number; // optional (in ms). Defaults to 10 - 15 seconds
     shouldRetry?: boolean;
     allowErrorRetry?: boolean;
-    responseType?: "" | "text" | "arraybuffer" | "blob" | "document" | "json";
+    responseType?: '' | 'text' | 'arraybuffer' | 'blob' | 'document' | 'json';
 
     /**
      * If you want to associate a request bag to this request (so you can cancel all requests for a given instance easily and fast)
      */
     bag?: RequestBag;
-    
+
     /**
      * Shorthand for 'bag: RequestBag.getOrCreate(self)'
      */
@@ -52,7 +52,7 @@ export class Request<T> {
     method: HTTPMethod;
     version?: number;
     headers: any;
-    responseType: "" | "text" | "arraybuffer" | "blob" | "document" | "json";
+    responseType: '' | 'text' | 'arraybuffer' | 'blob' | 'document' | 'json';
 
     /**
      * Set to false to disable middleware retry logic entirely. When canceling a request, this will also
@@ -84,23 +84,23 @@ export class Request<T> {
     middlewares: RequestMiddleware[] = [];
 
     decoder: Decoder<T> | undefined;
-    errorDecoder: Decoder<SimpleErrors> | undefined = SimpleErrors
+    errorDecoder: Decoder<SimpleErrors> | undefined = SimpleErrors;
 
     /// Milliseconds for fetch to timeout
-    timeout?: number
+    timeout?: number;
 
     bag?: RequestBag;
 
     static verbose = false;
 
-    didFailNetwork = false
+    didFailNetwork = false;
 
-    private XMLHttpRequest: XMLHttpRequest | null = null
+    private XMLHttpRequest: XMLHttpRequest | null = null;
 
     /**
      * Set a custom implementation of XMLHttpRequest, useful when using e.g. Capacitor
      */
-    overrideXMLHttpRequest?: any
+    overrideXMLHttpRequest?: any;
 
     constructor(server: Server, request: RequestInitializer<T>) {
         this.server = server;
@@ -112,12 +112,12 @@ export class Request<T> {
         this.headers = request.headers ?? {};
         this.version = request.version;
         this.timeout = request.timeout;
-        this.responseType = request.responseType ?? ""
-        this.shouldRetry = request.shouldRetry ?? this.shouldRetry
-        this.allowErrorRetry = request.allowErrorRetry ?? this.allowErrorRetry
-        this.bag = request.bag ?? (request.owner ? RequestBag.getOrCreate(request.owner) : undefined)
-        this.overrideXMLHttpRequest = request.overrideXMLHttpRequest
-        this.bag?.addRequest(this)
+        this.responseType = request.responseType ?? '';
+        this.shouldRetry = request.shouldRetry ?? this.shouldRetry;
+        this.allowErrorRetry = request.allowErrorRetry ?? this.allowErrorRetry;
+        this.bag = request.bag ?? (request.owner ? RequestBag.getOrCreate(request.owner) : undefined);
+        this.overrideXMLHttpRequest = request.overrideXMLHttpRequest;
+        this.bag?.addRequest(this);
     }
 
     get static(): typeof Request {
@@ -132,30 +132,30 @@ export class Request<T> {
      * Cancels any pending requests and also disables retries
      */
     cancel() {
-        this.shouldRetry = false
-        this.allowErrorRetry = false
+        this.shouldRetry = false;
+        this.allowErrorRetry = false;
 
         if (this.XMLHttpRequest) {
-            this.XMLHttpRequest.abort()
-            this.XMLHttpRequest = null
-        } else {
+            this.XMLHttpRequest.abort();
+            this.XMLHttpRequest = null;
+        }
+        else {
             // Probably a middleware that is running a timeout to retry it later on
             // Immediately call all middlewares to notify them faster of this abort
             // Notify middleware that we stop retrying
             if (!this.didFailNetwork) {
-                this.didFailNetwork = true
+                this.didFailNetwork = true;
                 for (const middleware of this.getMiddlewares()) {
                     // Check if one of the middlewares decides to stop
                     if (middleware.onFatalNetworkError) {
                         middleware.onFatalNetworkError(this, new SimpleError({
-                            code: "network_abort",
-                            message: "Network abort"
+                            code: 'network_abort',
+                            message: 'Network abort',
                         }));
                     }
                 }
             }
         }
-        
     }
 
     /**
@@ -163,15 +163,15 @@ export class Request<T> {
      * Shorthand to avoid RequestBag syntax.
      */
     static cancelAll(owner: any) {
-        RequestBag.get(owner)?.cancel()
+        RequestBag.get(owner)?.cancel();
     }
 
     static isNetworkError(e: Error): e is SimpleError | SimpleErrors {
-        return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode("network_error") || e.hasCode("network_timeout") || e.hasCode("network_abort")))
+        return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_error') || e.hasCode('network_timeout') || e.hasCode('network_abort')));
     }
 
     static isAbortError(e: Error): e is SimpleError | SimpleErrors {
-        return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode("network_abort")))
+        return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_abort')));
     }
 
     private async fetch(data: {
@@ -185,69 +185,69 @@ export class Request<T> {
             try {
                 const request: XMLHttpRequest = this.overrideXMLHttpRequest ? (new this.overrideXMLHttpRequest()) : new XMLHttpRequest();
                 request.responseType = this.responseType;
-                let finished = false
+                let finished = false;
 
                 request.onreadystatechange = (e: Event) => {
                     if (finished) {
                         // ignore duplicate events
-                        return
+                        return;
                     }
                     if (request.readyState == 4) {
                         if (request.status == 0) {
                             // should call handleError or handleTimeout
                             return;
                         }
-                
-                        finished = true
-                        this.XMLHttpRequest = null
-                        resolve(request)
+
+                        finished = true;
+                        this.XMLHttpRequest = null;
+                        resolve(request);
                     }
                 };
-        
+
                 request.ontimeout = () => {
                     if (finished) {
                         // ignore duplicate events
-                        return
+                        return;
                     }
-                    finished = true
-                    this.XMLHttpRequest = null
+                    finished = true;
+                    this.XMLHttpRequest = null;
                     reject(new SimpleError({
-                        code: "network_timeout",
-                        message: "Timeout"
-                    }))
+                        code: 'network_timeout',
+                        message: 'Timeout',
+                    }));
                 };
-        
+
                 request.onerror = (e: ProgressEvent) => {
                     if (finished) {
                         // ignore duplicate events
-                        return
+                        return;
                     }
                     // Your request timed out
-                    finished = true
-                    this.XMLHttpRequest = null
+                    finished = true;
+                    this.XMLHttpRequest = null;
                     reject(new SimpleError({
-                        code: "network_error",
-                        message: "Network error"
-                    }))
+                        code: 'network_error',
+                        message: 'Network error',
+                    }));
                 };
 
                 request.onabort = () => {
                     if (finished) {
                         // ignore duplicate events
-                        return
+                        return;
                     }
-                    finished = true
-                    this.XMLHttpRequest = null
+                    finished = true;
+                    this.XMLHttpRequest = null;
 
                     // Disable retries
-                    this.shouldRetry = false
+                    this.shouldRetry = false;
                     reject(new SimpleError({
-                        code: "network_abort",
-                        message: "Network abort"
-                    }))
+                        code: 'network_abort',
+                        message: 'Network abort',
+                    }));
                 };
-                
-                request.open(data.method, data.url)
+
+                request.open(data.method, data.url);
 
                 for (const key in data.headers) {
                     if (Object.prototype.hasOwnProperty.call(data.headers, key)) {
@@ -256,14 +256,15 @@ export class Request<T> {
                     }
                 }
 
-                request.timeout = data.timeout
+                request.timeout = data.timeout;
 
-                this.XMLHttpRequest = request
-                request.send(data.body)
-            } catch (e) {
-                reject(e)
+                this.XMLHttpRequest = request;
+                request.send(data.body);
             }
-        })
+            catch (e) {
+                reject(e);
+            }
+        });
     }
 
     async start(): Promise<RequestResult<T>> {
@@ -279,13 +280,13 @@ export class Request<T> {
             // This can happen when the onBeforeRequest did something time intensive (e.g. refresh a token)
             // and in the meantime, the request bag got canceled
             throw new SimpleError({
-                code: "network_abort",
-                message: "Network abort"
-            }) 
+                code: 'network_abort',
+                message: 'Network abort',
+            });
         }
 
         let response: XMLHttpRequest;
-        let timeout = this.timeout ?? (this.method == "GET" ? 20 * 1000 : 30 * 10000)
+        let timeout = this.timeout ?? (this.method == 'GET' ? 20 * 1000 : 30 * 10000);
 
         try {
             let body: any;
@@ -293,76 +294,79 @@ export class Request<T> {
             // We only support application/json or FormData for now
             if (this.body === undefined) {
                 body = undefined;
-            } else {
+            }
+            else {
                 if (this.body instanceof FormData) {
                     body = this.body;
-                    let size = 0
+                    let size = 0;
                     for (const [prop, value] of this.body.entries()) {
-                        if (typeof value === "string") {
-                            size += value.length
-                        } else {
-                            size += value.size
+                        if (typeof value === 'string') {
+                            size += value.length;
+                        }
+                        else {
+                            size += value.size;
                         }
                     }
 
                     if (size > 1000 * 1000 * 1000) {
                         // > 1MB upload
-                        timeout = Math.max(timeout, 60*1000)
+                        timeout = Math.max(timeout, 60 * 1000);
                     }
-                } else {
-                    if (!this.headers["Content-Type"] && this.headers["content-type"]) {
-                        this.headers["Content-Type"] = this.headers["content-type"];
-                        delete this.headers["content-type"];
+                }
+                else {
+                    if (!this.headers['Content-Type'] && this.headers['content-type']) {
+                        this.headers['Content-Type'] = this.headers['content-type'];
+                        delete this.headers['content-type'];
                     }
 
-                    if (this.headers["Content-Type"] && (this.headers["Content-Type"] as string).startsWith("application/x-www-form-urlencoded")) {
-                        const typeCopy = encodeObject(this.body, { version: this.version ?? 0 })
+                    if (this.headers['Content-Type'] && (this.headers['Content-Type'] as string).startsWith('application/x-www-form-urlencoded')) {
+                        const typeCopy = encodeObject(this.body, { version: this.version ?? 0 });
                         if (typeCopy === null || typeCopy === undefined) {
-                            throw new Error("Invalid body, got null/undefined, which is not encodeable to a querystring")
+                            throw new Error('Invalid body, got null/undefined, which is not encodeable to a querystring');
                         }
                         body = Object.keys(typeCopy)
-                            .filter((k) => typeCopy[k] !== undefined)
-                            .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(typeCopy[k]))
-                            .join("&");
-                    } else {
-                        this.headers["Content-Type"] = "application/json;charset=utf-8";
-                        body = JSON.stringify(encodeObject(this.body, { version: this.version ?? 0 }))
+                            .filter(k => typeCopy[k] !== undefined)
+                            .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(typeCopy[k]))
+                            .join('&');
                     }
-                    
+                    else {
+                        this.headers['Content-Type'] = 'application/json;charset=utf-8';
+                        body = JSON.stringify(encodeObject(this.body, { version: this.version ?? 0 }));
+                    }
                 }
             }
 
-            let queryString = "";
-            if (this.query ) {
-                const query = encodeObject(this.query, { version: this.version ?? 0 })
+            let queryString = '';
+            if (this.query) {
+                const query = encodeObject(this.query, { version: this.version ?? 0 });
 
                 if (query !== undefined && query !== null && Object.keys(query).length > 0) {
-                    queryString =
-                    "?" +
-                    Object.keys(query)
-                        .filter((k) => query[k] !== undefined)
-                        .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(query[k]))
-                        .join("&");
+                    queryString
+                    = '?'
+                        + Object.keys(query)
+                            .filter(k => query[k] !== undefined)
+                            .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(query[k]))
+                            .join('&');
                 }
             }
 
             if (this.static.verbose) {
-                console.log("Starting new request");
-                console.log("New request", this.method, this.path, this.body, this.query, this.headers);
+                console.log('Starting new request');
+                console.log('New request', this.method, this.path, this.body, this.query, this.headers);
             }
 
             response = await this.fetch({
-                url: this.server.host + (this.version !== undefined ? ("/v" + this.version) : "") + this.path + queryString,
+                url: this.server.host + (this.version !== undefined ? ('/v' + this.version) : '') + this.path + queryString,
                 method: this.method,
                 headers: this.headers,
                 body,
-                timeout
-            })
-
-        } catch (error) {
+                timeout,
+            });
+        }
+        catch (error) {
             if ((isSimpleError(error) || isSimpleErrors(error)) && error.hasCode('network_timeout')) {
                 // Increase next timeout (note: upload will stay 1 minute)
-                this.timeout = Math.max(timeout, 30*1000);
+                this.timeout = Math.max(timeout, 30 * 1000);
             }
             // network error is encountered or CORS is misconfigured on the server-side
 
@@ -381,7 +385,7 @@ export class Request<T> {
 
                     if (!this.shouldRetry || this.didFailNetwork) {
                         // Stop the loop faster
-                        break
+                        break;
                     }
                 }
 
@@ -395,7 +399,7 @@ export class Request<T> {
             // Notify middleware that we stop retrying
             if (!this.didFailNetwork) {
                 // On abort we call this faster if needed (e.g. when middleware is hanging)
-                this.didFailNetwork = true
+                this.didFailNetwork = true;
                 for (const middleware of this.getMiddlewares()) {
                     // Check if one of the middlewares decides to stop
                     if (middleware.onFatalNetworkError) {
@@ -405,7 +409,7 @@ export class Request<T> {
             }
 
             // Failed and not caught
-            this.bag?.removeRequest(this)
+            this.bag?.removeRequest(this);
             throw error;
         }
 
@@ -434,15 +438,15 @@ export class Request<T> {
         }
 
         if (response.status < 200 || response.status >= 300) {
-            if (response.getResponseHeader("Content-Type") === "application/json") {
+            if (response.getResponseHeader('Content-Type') === 'application/json') {
                 let err: SimpleErrors | any;
 
                 try {
-                    let bodyText = await response.response
+                    let bodyText = await response.response;
                     if (bodyText instanceof Blob) {
-                        bodyText = await response.response.text()
+                        bodyText = await response.response.text();
                     }
-                    const json = JSON.parse(bodyText)
+                    const json = JSON.parse(bodyText);
 
                     if (this.errorDecoder) {
                         try {
@@ -450,18 +454,21 @@ export class Request<T> {
                             if (this.static.verbose) {
                                 console.error(err);
                             }
-                        } catch (e) {
+                        }
+                        catch (e) {
                             // Failed to decode
                             if (this.static.verbose) {
                                 console.error(json);
                             }
-                            throw e
+                            throw e;
                         }
-                    } else {
-                        err = json
                     }
-                } catch (e) {
-                    return await this.retryOrThrowServerError(response, e)
+                    else {
+                        err = json;
+                    }
+                }
+                catch (e) {
+                    return await this.retryOrThrowServerError(response, e);
                 }
 
                 // A middleware might decide here to retry instead of passing the error to the caller
@@ -481,25 +488,26 @@ export class Request<T> {
                     }
                 }
 
-                this.bag?.removeRequest(this)
+                this.bag?.removeRequest(this);
                 throw err;
             }
 
             // A non 200 status code without json header is always considered as a server error.
-            return await this.retryOrThrowServerError(response, new Error(response.response))
+            return await this.retryOrThrowServerError(response, new Error(response.response));
         }
 
-        if (response.getResponseHeader("Content-Type") === "application/json") {
-            let json: any
+        if (response.getResponseHeader('Content-Type') === 'application/json') {
+            let json: any;
             try {
-                let bodyText = await response.response
+                let bodyText = await response.response;
                 if (bodyText instanceof Blob) {
-                    bodyText = await response.response.text()
+                    bodyText = await response.response.text();
                 }
-                 json = JSON.parse(bodyText)
-            } catch (e) {
+                json = JSON.parse(bodyText);
+            }
+            catch (e) {
                 // A 200 status code with invalid JSON is considered a server error
-                return await this.retryOrThrowServerError(response, e)
+                return await this.retryOrThrowServerError(response, e);
             }
 
             if (this.decoder) {
@@ -507,11 +515,11 @@ export class Request<T> {
                 if (this.static.verbose) {
                     console.info(decoded);
                 }
-                this.bag?.removeRequest(this)
+                this.bag?.removeRequest(this);
                 return new RequestResult(decoded, Request.parseHeaders(response.getAllResponseHeaders()), responseVersion);
             }
 
-            this.bag?.removeRequest(this)
+            this.bag?.removeRequest(this);
             return new RequestResult(json, Request.parseHeaders(response.getAllResponseHeaders()), responseVersion);
         }
 
@@ -520,17 +528,17 @@ export class Request<T> {
             if (this.static.verbose) {
                 console.error(response.response);
             }
-            return await this.retryOrThrowServerError(response, new Error("Missing JSON response from server"))
+            return await this.retryOrThrowServerError(response, new Error('Missing JSON response from server'));
         }
 
-        this.bag?.removeRequest(this)
+        this.bag?.removeRequest(this);
         return new RequestResult(await response.response, Request.parseHeaders(response.getAllResponseHeaders()), responseVersion) as any;
     }
 
     static parseHeaders(headers: string) {
-        const result: Record<string, string> = {}
+        const result: Record<string, string> = {};
         for (const line of headers.trim().split(/[\r\n]+/)) {
-            const parts = line.split(": ")
+            const parts = line.split(': ');
             const header = parts.shift();
             if (header) {
                 const value = parts.join(': ');
@@ -562,7 +570,7 @@ export class Request<T> {
                 return await this.start();
             }
         }
-        this.bag?.removeRequest(this)
+        this.bag?.removeRequest(this);
         throw e;
     }
 }

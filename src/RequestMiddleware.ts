@@ -1,6 +1,6 @@
-import { SimpleErrors } from "@simonbackx/simple-errors";
+import { SimpleErrors } from '@simonbackx/simple-errors';
 
-import { Request } from "./Request";
+import { Request } from './Request';
 
 export interface RequestMiddleware {
     onBeforeRequest?(request: Request<any>): Promise<void>;
