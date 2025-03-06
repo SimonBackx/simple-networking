@@ -23,7 +23,7 @@ export class RequestResult<T> {
 export interface RequestInitializer<T> {
     method: HTTPMethod;
     path: string;
-    query?: any;
+    query?: EncodableObject | undefined;
     body?: EncodableObject | FormData;
     headers?: any;
     decoder?: Decoder<T>;
@@ -69,7 +69,7 @@ export class Request<T> {
     /**
      * Data that will get encoded in the URL of the request.
      */
-    query: any | undefined;
+    query: EncodableObject | undefined;
 
     /**
      * Content that will get encoded in the body of the request (only for non GET requests)
@@ -349,13 +349,49 @@ export class Request<T> {
                     medium: EncodeMedium.Network,
                 });
 
-                if (query !== undefined && query !== null && Object.keys(query).length > 0) {
-                    queryString
-                    = '?'
-                        + Object.keys(query)
-                            .filter(k => query[k] !== undefined)
-                            .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(query[k]))
-                            .join('&');
+                if (query !== undefined && query !== null) {
+                    if (typeof query === 'object' && !Array.isArray(query)) {
+                        const params = new URLSearchParams();
+                        for (const key in query) {
+                            const value = query[key];
+                            if (typeof value === 'string') {
+                                params.set(key, value);
+                            }
+                            else if (Array.isArray(value)) {
+                                for (const v of value) {
+                                    if (typeof v === 'string') {
+                                        params.append(key, v);
+                                    }
+                                    else {
+                                        throw new SimpleError({
+                                            code: 'invalid_query',
+                                            message: 'Invalid query parameter with non-string array value',
+                                            human: 'Er ging iets mis bij het omvormen van dit verzoek',
+                                        });
+                                    }
+                                }
+                            }
+                            else {
+                                throw new SimpleError({
+                                    code: 'invalid_query',
+                                    message: 'Invalid query parameter with non-string value',
+                                    human: 'Er ging iets mis bij het omvormen van dit verzoek',
+                                });
+                            }
+                        }
+
+                        const s = params.toString();
+                        if (s.length) {
+                            queryString = '?' + s;
+                        }
+                    }
+                    else {
+                        throw new SimpleError({
+                            code: 'invalid_query',
+                            message: 'Invalid query parameter of type ' + (typeof query),
+                            human: 'Er ging iets mis bij het omvormen van dit verzoek',
+                        });
+                    }
                 }
             }
 
