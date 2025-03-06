@@ -354,12 +354,45 @@ export class Request<T> {
                         const params = new URLSearchParams();
                         for (const key in query) {
                             const value = query[key];
-                            if (typeof value === 'string') {
+                            if (value === null || value === undefined) {
+                                // skip
+                            }
+                            else if (typeof value === 'boolean') {
+                                params.set(key, value ? 'true' : 'false');
+                            }
+                            else if (typeof value === 'number') {
+                                if (Number.isFinite(value)) {
+                                    params.set(key, value.toString());
+                                }
+                                else {
+                                    throw new SimpleError({
+                                        code: 'invalid_query',
+                                        message: 'Invalid query parameter with non-integer number value ' + value.toString(),
+                                        human: 'Er ging iets mis bij het omvormen van dit verzoek',
+                                    });
+                                }
+                            }
+                            else if (typeof value === 'string') {
                                 params.set(key, value);
                             }
                             else if (Array.isArray(value)) {
                                 for (const v of value) {
-                                    if (typeof v === 'string') {
+                                    if (typeof v === 'boolean') {
+                                        params.append(key, v ? 'true' : 'false');
+                                    }
+                                    else if (typeof v === 'number') {
+                                        if (Number.isFinite(v)) {
+                                            params.set(key, v.toString());
+                                        }
+                                        else {
+                                            throw new SimpleError({
+                                                code: 'invalid_query',
+                                                message: 'Invalid query parameter with non-integer number value in array ' + v.toString(),
+                                                human: 'Er ging iets mis bij het omvormen van dit verzoek',
+                                            });
+                                        }
+                                    }
+                                    else if (typeof v === 'string') {
                                         params.append(key, v);
                                     }
                                     else {
