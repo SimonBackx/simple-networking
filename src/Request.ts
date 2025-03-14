@@ -166,6 +166,10 @@ export class Request<T> {
         RequestBag.get(owner)?.cancel();
     }
 
+    static isTimeout(e: Error): e is SimpleError | SimpleErrors {
+        return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_timeout')));
+    }
+
     static isNetworkError(e: Error): e is SimpleError | SimpleErrors {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_error') || e.hasCode('network_timeout') || e.hasCode('network_abort')));
     }
