@@ -30,7 +30,7 @@ else {
     EncodeMedium = StubbedEncodeMedium as any;
 }
 
-export const {
+const {
     encodeObject,
     ObjectData,
 } = simpleEncoding;
