@@ -1,10 +1,39 @@
 // Requests use middleware to extend its behaviour
-import { Decoder, EncodableObject, EncodeMedium, encodeObject, ObjectData } from '@simonbackx/simple-encoding';
 import { isSimpleError, isSimpleErrors, SimpleError, SimpleErrors } from '@simonbackx/simple-errors';
 
 import { RequestBag } from './RequestBag';
 import { RequestMiddleware } from './RequestMiddleware';
 import { Server } from './Server';
+
+// We still support an older version of simple-encoding, so we stub EncodeMedium here
+import * as simpleEncoding from '@simonbackx/simple-encoding';
+import { type EncodableObject, type Decoder } from '@simonbackx/simple-encoding';
+
+let EncodeMedium: typeof simpleEncoding.EncodeMedium;
+
+if ('EncodeMedium' in simpleEncoding) {
+    EncodeMedium = (simpleEncoding as any).EncodeMedium;
+}
+else {
+    enum StubbedEncodeMedium {
+        /**
+         * The object will be sent over the network.
+         */
+        Network = 'Network',
+
+        /**
+         * The object will be stored in the database.
+         */
+        Database = 'Database',
+    }
+
+    EncodeMedium = StubbedEncodeMedium as any;
+}
+
+export const {
+    encodeObject,
+    ObjectData,
+} = simpleEncoding;
 
 export type HTTPMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
 

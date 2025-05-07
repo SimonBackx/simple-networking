@@ -574,9 +574,9 @@
     fastq "^1.6.0"
 
 "@simonbackx/simple-encoding@^2.20.0":
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/@simonbackx/simple-encoding/-/simple-encoding-2.20.0.tgz#eb0bf731951fcfe5903e457ef8708ee1f7eca1cb"
-  integrity sha512-A4KNuN8UDib6wC27H5nteZCqDIFdyFxYCCDyR2U9GIvoBM005CWw60lW9D+UhzSmNsYlz7nbKDrL3yvtnTovUQ==
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@simonbackx/simple-encoding/-/simple-encoding-2.22.0.tgz#769cf735653ee4fc5ff3eb4af2ce8bcb0a315d9a"
+  integrity sha512-aaEV4ImlXHJp89wUP/Mthlv36xTOjd25KrOzU6JQqtrej4EjZP8n/RuaJKEl/SnJS9TJnuE7lM6a1Uh+Qgcw2w==
 
 "@simonbackx/simple-errors@^1.5.0":
   version "1.5.0"
