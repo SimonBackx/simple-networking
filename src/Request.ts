@@ -33,6 +33,9 @@ export interface RequestInitializer<T> {
     allowErrorRetry?: boolean;
     responseType?: '' | 'text' | 'arraybuffer' | 'blob' | 'document' | 'json';
 
+    /** In cases where the backend server doesn't or returns incorrect content types, we can override it */
+    responseContentTypeOverride?: string;
+
     /**
      * If you want to associate a request bag to this request (so you can cancel all requests for a given instance easily and fast)
      */
@@ -53,6 +56,9 @@ export class Request<T> {
     version?: number;
     headers: any;
     responseType: '' | 'text' | 'arraybuffer' | 'blob' | 'document' | 'json';
+
+    /** In cases where the backend server doesn't or returns incorrect content types, we can override it */
+    responseContentTypeOverride?: string;
 
     /**
      * Set to false to disable middleware retry logic entirely. When canceling a request, this will also
@@ -113,6 +119,7 @@ export class Request<T> {
         this.version = request.version;
         this.timeout = request.timeout;
         this.responseType = request.responseType ?? '';
+        this.responseContentTypeOverride = request.responseContentTypeOverride;
         this.shouldRetry = request.shouldRetry ?? this.shouldRetry;
         this.allowErrorRetry = request.allowErrorRetry ?? this.allowErrorRetry;
         this.bag = request.bag ?? (request.owner ? RequestBag.getOrCreate(request.owner) : undefined);
@@ -519,8 +526,11 @@ export class Request<T> {
             responseVersion = this.version ?? 0;
         }
 
+        const contentType = this.responseContentTypeOverride ?? (response.getResponseHeader('Content-Type') || '');
+        const mediaType = contentType.split(';')[0].trim().toLowerCase();
+
         if (response.status < 200 || response.status >= 300) {
-            if (response.getResponseHeader('Content-Type') === 'application/json') {
+            if (mediaType === 'application/json') {
                 let err: SimpleErrors | any;
 
                 try {
@@ -583,7 +593,9 @@ export class Request<T> {
             return await this.retryOrThrowServerError(response, new Error(response.response));
         }
 
-        if (response.getResponseHeader('Content-Type') === 'application/json') {
+        if (mediaType === 'application/json') {
+            // If we have a decoder, we also try to decode the json. Because some servers don't
+            // return the correct content type, and we can't fix that
             let json: any;
             try {
                 let bodyText = await response.response;
