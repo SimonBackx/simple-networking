@@ -1,5 +1,7 @@
 {
     "recommendations": [
-        "octref.vetur"
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "lokalise.i18n-ally"
     ]
 }
