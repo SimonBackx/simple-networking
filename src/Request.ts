@@ -326,7 +326,7 @@ export class Request<T> {
         }
 
         let response: XMLHttpRequest;
-        let timeout = this.timeout ?? (this.method == 'GET' ? 20 * 1000 : 30 * 10000);
+        let timeout = this.timeout ?? (this.method == 'GET' ? 30 * 1000 : 35 * 10000);
 
         try {
             let body: any;
@@ -484,7 +484,7 @@ export class Request<T> {
         catch (error) {
             if ((isSimpleError(error) || isSimpleErrors(error)) && error.hasCode('network_timeout')) {
                 // Increase next timeout (note: upload will stay 1 minute)
-                this.timeout = Math.max(timeout, 30 * 1000);
+                this.timeout = Math.max(timeout, 45 * 1000);
             }
             // network error is encountered or CORS is misconfigured on the server-side
 
