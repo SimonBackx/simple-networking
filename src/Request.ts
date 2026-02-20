@@ -77,6 +77,10 @@ export interface RequestInitializer<T> {
     overrideXMLHttpRequest?: any;
 }
 
+export type NetworkError = (SimpleError | SimpleErrors) & { readonly __isNetworkError?: never };
+export type AbortError = (SimpleError | SimpleErrors) & { readonly __isAbortError?: never };
+export type TimeoutError = (SimpleError | SimpleErrors) & { readonly __isTimeoutError?: never };
+
 export class Request<T> {
     /// Path, relative to API host
     server: Server;
@@ -202,15 +206,15 @@ export class Request<T> {
         RequestBag.get(owner)?.cancel();
     }
 
-    static isTimeout(e: unknown): e is SimpleError | SimpleErrors {
+    static isTimeout(e: unknown): e is TimeoutError {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_timeout')));
     }
 
-    static isNetworkError(e: unknown): e is SimpleError | SimpleErrors {
+    static isNetworkError(e: unknown): e is NetworkError {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_error') || e.hasCode('network_timeout') || e.hasCode('network_abort')));
     }
 
-    static isAbortError(e: unknown): e is SimpleError | SimpleErrors {
+    static isAbortError(e: unknown): e is AbortError {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_abort')));
     }
 
