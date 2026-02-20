@@ -371,10 +371,21 @@ export class Request<T> {
                         if (typeCopy === null || typeCopy === undefined) {
                             throw new Error('Invalid body, got null/undefined, which is not encodeable to a querystring');
                         }
+                        if (Array.isArray(typeCopy)) {
+                            throw new Error('Invalid body, got an array which is not encodeable to a querystring');
+                        }
+                        if (typeof typeCopy === 'object') {
                         body = Object.keys(typeCopy)
                             .filter(k => typeCopy[k] !== undefined)
-                            .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(typeCopy[k]))
+                                .map((k) => {
+                                    const v = typeCopy[k];
+                                    if (typeof v === 'object') {
+                                        throw new Error('Invalid body, cannot encode deep objects or arrays in a querystring. Object found at ' + k);
+                                    }
+                                    return encodeURIComponent(k) + '=' + encodeURIComponent(v === null ? 'null' : v!.toString());
+                                })
                             .join('&');
+                        }
                     }
                     else {
                         this.headers['Content-Type'] = 'application/json;charset=utf-8';
