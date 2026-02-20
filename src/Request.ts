@@ -222,7 +222,7 @@ export class Request<T> {
         method: HTTPMethod;
         url: string;
         body: string | Document | Blob | ArrayBufferView | ArrayBuffer | FormData | URLSearchParams | null | undefined;
-        headers: any;
+        headers: Record<string, string>;
         timeout: number;
     }): Promise<XMLHttpRequest> {
         return new Promise((resolve, reject) => {
@@ -231,13 +231,13 @@ export class Request<T> {
                 request.responseType = this.responseType;
                 let finished = false;
 
-                request.onreadystatechange = (e: Event) => {
+                request.onreadystatechange = () => {
                     if (finished) {
                         // ignore duplicate events
                         return;
                     }
-                    if (request.readyState == 4) {
-                        if (request.status == 0) {
+                    if (request.readyState === 4) {
+                        if (request.status === 0) {
                             // should call handleError or handleTimeout
                             return;
                         }
@@ -261,7 +261,7 @@ export class Request<T> {
                     }));
                 };
 
-                request.onerror = (e: ProgressEvent) => {
+                request.onerror = () => {
                     if (finished) {
                         // ignore duplicate events
                         return;
@@ -330,7 +330,7 @@ export class Request<T> {
         }
 
         let response: XMLHttpRequest;
-        let timeout = this.timeout ?? (this.method == 'GET' ? 30 * 1000 : 35 * 10000);
+        let timeout = this.timeout ?? (this.method === 'GET' ? 30 * 1000 : 35 * 10000);
 
         try {
             let body: any;
@@ -343,7 +343,7 @@ export class Request<T> {
                 if (this.body instanceof FormData) {
                     body = this.body;
                     let size = 0;
-                    for (const [prop, value] of this.body.entries()) {
+                    for (const [_, value] of this.body.entries()) {
                         if (typeof value === 'string') {
                             size += value.length;
                         }
@@ -375,8 +375,8 @@ export class Request<T> {
                             throw new Error('Invalid body, got an array which is not encodeable to a querystring');
                         }
                         if (typeof typeCopy === 'object') {
-                        body = Object.keys(typeCopy)
-                            .filter(k => typeCopy[k] !== undefined)
+                            body = Object.keys(typeCopy)
+                                .filter(k => typeCopy[k] !== undefined)
                                 .map((k) => {
                                     const v = typeCopy[k];
                                     if (typeof v === 'object') {
@@ -384,7 +384,7 @@ export class Request<T> {
                                     }
                                     return encodeURIComponent(k) + '=' + encodeURIComponent(v === null ? 'null' : v!.toString());
                                 })
-                            .join('&');
+                                .join('&');
                         }
                     }
                     else {
@@ -513,7 +513,7 @@ export class Request<T> {
                 for (const middleware of this.getMiddlewares()) {
                     // Check if one of the middlewares decides to stop
                     if (middleware.shouldRetryNetworkError) {
-                        retry = retry || (await middleware.shouldRetryNetworkError(this, error));
+                        retry = retry || (await middleware.shouldRetryNetworkError(this, error as Error));
                     }
 
                     if (!this.shouldRetry || this.didFailNetwork) {
@@ -536,7 +536,7 @@ export class Request<T> {
                 for (const middleware of this.getMiddlewares()) {
                     // Check if one of the middlewares decides to stop
                     if (middleware.onFatalNetworkError) {
-                        middleware.onFatalNetworkError(this, error);
+                        middleware.onFatalNetworkError(this, error as Error);
                     }
                 }
             }
@@ -582,7 +582,7 @@ export class Request<T> {
                     if (bodyText instanceof Blob) {
                         bodyText = await response.response.text();
                     }
-                    const json = JSON.parse(bodyText);
+                    const json = typeof bodyText === 'string' ? JSON.parse(bodyText) : bodyText;
 
                     if (this.errorDecoder) {
                         try {
@@ -609,11 +609,11 @@ export class Request<T> {
                     }
                 }
                 catch (e) {
-                    return await this.retryOrThrowServerError(response, e);
+                    return await this.retryOrThrowServerError(response, e as Error);
                 }
 
                 // A middleware might decide here to retry instead of passing the error to the caller
-                if (this.shouldRetry || this.allowErrorRetry) {
+                if (isSimpleErrors(err) && (this.shouldRetry || this.allowErrorRetry)) {
                     let retry = false;
                     for (const middleware of this.getMiddlewares()) {
                         // Check if one of the middlewares decides to stop
@@ -633,8 +633,17 @@ export class Request<T> {
                 throw err;
             }
 
+            let bodyText = await response.response;
+            if (bodyText instanceof Blob) {
+                bodyText = await response.response.text();
+            }
+
             // A non 200 status code without json header is always considered as a server error.
-            return await this.retryOrThrowServerError(response, new Error(response.response));
+            return await this.retryOrThrowServerError(response, new SimpleError({
+                code: 'http_status_error',
+                message: typeof bodyText === 'string' ? bodyText : response.statusText,
+                statusCode: response.status,
+            }));
         }
 
         if (mediaType === 'application/json') {
@@ -646,11 +655,11 @@ export class Request<T> {
                 if (bodyText instanceof Blob) {
                     bodyText = await response.response.text();
                 }
-                json = JSON.parse(bodyText);
+                json = typeof bodyText === 'string' ? JSON.parse(bodyText) : bodyText;
             }
             catch (e) {
                 // A 200 status code with invalid JSON is considered a server error
-                return await this.retryOrThrowServerError(response, e);
+                return await this.retryOrThrowServerError(response, e as Error);
             }
 
             if (this.decoder) {
