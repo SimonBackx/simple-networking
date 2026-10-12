@@ -1,6 +1,7 @@
 import { Request, RequestInitializer, RequestResult } from './Request';
 import { RequestMiddleware } from './RequestMiddleware';
 
+/** API host and middleware configuration; each built request copies the current middleware list. */
 export class Server {
     /**
      * Hostname, including http(s) and port
