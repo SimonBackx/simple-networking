@@ -57,8 +57,11 @@ export interface RequestInitializer<T> {
     headers?: any;
     decoder?: Decoder<T>;
     version?: number;
-    timeout?: number; // optional (in ms). Defaults to 10 - 15 seconds
+    /** Milliseconds; initially 30 seconds for GET and 350 seconds for other methods. */
+    timeout?: number;
+    /** Enable network/server-error retry decisions by middleware; defaults to true, not a built-in retry policy. */
     shouldRetry?: boolean;
+    /** Allow decoded API-error retries even when shouldRetry is false; defaults to true (e.g. token refresh). */
     allowErrorRetry?: boolean;
     responseType?: '' | 'text' | 'arraybuffer' | 'blob' | 'document' | 'json';
 
@@ -94,8 +97,8 @@ export class Request<T> {
     responseContentTypeOverride?: string;
 
     /**
-     * Set to false to disable middleware retry logic entirely. When canceling a request, this will also
-     * disable retries
+     * Enable middleware retries for network/server failures. Decoded API errors
+     * can still be retried through allowErrorRetry. Cancellation disables both.
      */
     shouldRetry = true;
 
@@ -206,14 +209,17 @@ export class Request<T> {
         RequestBag.get(owner)?.cancel();
     }
 
+    /** Match the library's network_timeout error code. */
     static isTimeout(e: unknown): e is TimeoutError {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_timeout')));
     }
 
+    /** Match network failures, timeouts and aborts; use isAbortError to hide only cancellation in the UI. */
     static isNetworkError(e: unknown): e is NetworkError {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_error') || e.hasCode('network_timeout') || e.hasCode('network_abort')));
     }
 
+    /** Match cancellation (network_abort), excluding other network failures. */
     static isAbortError(e: unknown): e is AbortError {
         return !!((isSimpleError(e) || isSimpleErrors(e)) && (e.hasCode('network_abort')));
     }
